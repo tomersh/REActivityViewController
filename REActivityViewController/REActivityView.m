@@ -131,8 +131,6 @@ static const CGFloat cancelButtonWidth = 276;
 {
     REActivity *activity = [_activities objectAtIndex:button.tag];
     
-    [_ioc_analytics trackShare:self.containerName andChannel:activity.title];
-    
     activity.activityViewController = _activityViewController;
     if (activity.actionBlock) {
         activity.actionBlock(activity, _activityViewController);
