@@ -163,21 +163,6 @@ twitterActivity.userInfo = @{@"image": [UIImage imageNamed:@"Flower.jpg"],
                              @"text": @"Hello world! via @myapp"};
 ```
 
-### Presentation Notes
-
-On the iPhone, you must present `REActivityViewController` from the window's root controller (top level controller), otherwise you'll be getting black background underneath `REActivityViewController`.
-It has something to do with `UIModalPresentationCurrentContext` as it requires presenting view to be full screen.
-
-For example, if your controller is contained in `UINavigationController` you could use the following code to present `REActivityViewController`:
-
-``` objective-c
-REActivityViewController *activityViewController = [[REActivityViewController alloc] initWithViewController:self.navigationController activities:activities];
-
-    [self addChildViewController:activityViewController];
-    [self.view addSubview:activityViewController.view];
-    [activityViewController didMoveToParentViewController:self];
-```
-
 ### iPad specific
 
 On iPad, you should use `UIPopoverController` to present `REActivityViewController`.
