@@ -151,11 +151,9 @@ activityViewController.userInfo = @{
 
 // Present it using current context
 //
-__typeof(&*self) __weak weakSelf = self;
-self.modalPresentationStyle = UIModalPresentationCurrentContext;
-[self presentViewController:activityViewController animated:YES completion:^{
-    weakSelf.modalPresentationStyle = UIModalPresentationFullScreen;
-}];
+    [self addChildViewController:activityViewController];
+    [self.view addSubview:activityViewController.view];
+    [activityViewController didMoveToParentViewController:self];
 ```
 
 You can also define per-activity userInfo dictionaries, for instance:
@@ -175,11 +173,9 @@ For example, if your controller is contained in `UINavigationController` you cou
 ``` objective-c
 REActivityViewController *activityViewController = [[REActivityViewController alloc] initWithViewController:self.navigationController activities:activities];
 
-__typeof(&*self) __weak weakSelf = self;
-self.navigationController.modalPresentationStyle = UIModalPresentationCurrentContext;
-[self.navigationController presentViewController:activityViewController animated:YES completion:^{
-    weakSelf.navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-}];
+    [self addChildViewController:activityViewController];
+    [self.view addSubview:activityViewController.view];
+    [activityViewController didMoveToParentViewController:self];
 ```
 
 ### iPad specific
