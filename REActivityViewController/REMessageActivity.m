@@ -45,6 +45,9 @@
         NSURL *url = [userInfo objectForKey:@"url"];
         [activityViewController dismissViewControllerAnimated:YES completion:^{
             MFMessageComposeViewController *messageComposeViewController = [[MFMessageComposeViewController alloc] init];
+            
+            if(!messageComposeViewController) return;
+            
             [REActivityDelegateObject sharedObject].controller = activityViewController.presentingController;
             messageComposeViewController.messageComposeDelegate = [REActivityDelegateObject sharedObject];
             
