@@ -28,22 +28,29 @@
 
 @implementation REActivityView
 
+static const CGFloat cancelButtonHeight = 47;
+static const CGFloat cancelButtonWidth = 276;
+
+
 - (id)initWithFrame:(CGRect)frame activities:(NSArray *)activities
 {
     self = [super initWithFrame:frame];
     if (self) {
         self.clipsToBounds = YES;
+        
+        //CGRect frame = [[UIScreen mainScreen] bounds];
+        
         _activities = activities;
         
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-            _backgroundImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, frame.size.width, 417)];
+            _backgroundImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, frame.size.width, frame.size.height)];
             _backgroundImageView.image = [UIImage imageNamed:@"REActivityViewController.bundle/Background"];
             _backgroundImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth;
             [self addSubview:_backgroundImageView];
         }
     
         
-        _scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 39, frame.size.width, self.frame.size.height - 104)];
+        _scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 39, frame.size.width, self.frame.size.height - cancelButtonHeight - 39)];
         _scrollView.showsHorizontalScrollIndicator = NO;
         _scrollView.showsVerticalScrollIndicator = NO;
         _scrollView.delegate = self;
@@ -51,30 +58,15 @@
         [self addSubview:_scrollView];
         
         NSInteger index = 0;
-        NSInteger row = -1;
-        NSInteger page = -1;
         for (REActivity *activity in _activities) {
-            NSInteger col;
-            
-            col = index%3;
-            if (index % 3 == 0) row++;
-            if (index % 9 == 0) {
-                row = 0;
-                page++;
-            }
-
-            UIView *view = [self viewForActivity:activity
-                                           index:index
-                                               x:(20 + col*80 + col*20) + page * frame.size.width
-                                               y:row*80 + row*20];
+            UIView *view = [self viewForActivity:activity index:index++ x:0 y:0];
             [_scrollView addSubview:view];
-            index++;
         }
-        _scrollView.contentSize = CGSizeMake((page +1) * frame.size.width, _scrollView.frame.size.height);
+        
         _scrollView.pagingEnabled = YES;
         
         _pageControl = [[UIPageControl alloc] initWithFrame:CGRectMake(0, frame.size.height - 84, frame.size.width, 10)];
-        _pageControl.numberOfPages = page + 1;
+        
         [_pageControl addTarget:self action:@selector(pageControlValueChanged:) forControlEvents:UIControlEventValueChanged];
         [self addSubview:_pageControl];
         
@@ -82,14 +74,15 @@
             _pageControl.hidden = YES;
         
         _cancelButton = [UIButton buttonWithType:UIButtonTypeCustom];
-        [_cancelButton setBackgroundImage:[[UIImage imageNamed:@"REActivityViewController.bundle/Button"] stretchableImageWithLeftCapWidth:22 topCapHeight:47] forState:UIControlStateNormal];
-        _cancelButton.frame = CGRectMake(22, 352, 276, 47);
-        [_cancelButton setTitle:NSLocalizedStringFromTable(@"button.cancel", @"REActivityViewController", @"Cancel") forState:UIControlStateNormal];
+        [_cancelButton setBackgroundImage:[[UIImage imageNamed:@"REActivityViewController.bundle/Button"] stretchableImageWithLeftCapWidth:22 topCapHeight:cancelButtonHeight] forState:UIControlStateNormal];
+        
+        [_cancelButton setTitle:@"Cancel" forState:UIControlStateNormal];
         [_cancelButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
         [_cancelButton setTitleShadowColor:[UIColor colorWithRed:0 green:0 blue:0 alpha:0.4] forState:UIControlStateNormal];
         [_cancelButton.titleLabel setShadowOffset:CGSizeMake(0, -1)];
         [_cancelButton.titleLabel setFont:[UIFont boldSystemFontOfSize:19]];
         [_cancelButton addTarget:self action:@selector(cancelButtonPressed) forControlEvents:UIControlEventTouchUpInside];
+        _cancelButton.autoresizingMask = UIViewAutoresizingFlexibleBottomMargin;
         [self addSubview:_cancelButton];
     }
     return self;
@@ -126,16 +119,6 @@
     return view;
 }
 
-- (void)layoutSubviews
-{
-    [super layoutSubviews];
-    
-    CGRect frame = _cancelButton.frame;
-    frame.origin.y = self.frame.size.height - 47 - 16;
-    frame.origin.x = (self.frame.size.width - frame.size.width) / 2.0f;
-    _cancelButton.frame = frame;
-}
-
 #pragma mark -
 #pragma mark Button action
 
@@ -147,9 +130,47 @@
 - (void)buttonPressed:(UIButton *)button
 {
     REActivity *activity = [_activities objectAtIndex:button.tag];
+    
+    [_ioc_analytics trackShare:self.containerName andChannel:activity.title];
+    
     activity.activityViewController = _activityViewController;
     if (activity.actionBlock) {
         activity.actionBlock(activity, _activityViewController);
+    }
+}
+
+-(NSUInteger *)numberOfIconsInLine {
+    BOOL isLandscape = UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation]);
+    return isLandscape ? 4 : 3;
+}
+
+-(void)layoutSubviews {
+    [super layoutSubviews];
+    
+    NSUInteger numberOfIcons = [[_scrollView subviews] count];
+    
+    NSUInteger numberOfIconsInLine = self.numberOfIconsInLine;
+    
+    _cancelButton.frame = CGRectMake((self.frame.size.width - cancelButtonWidth) / 2.0, self.bounds.size.height - cancelButtonHeight - 15, cancelButtonWidth, cancelButtonHeight);
+    
+    _scrollView.contentSize = CGSizeMake((int)(numberOfIcons / numberOfIconsInLine) * self.frame.size.width, _scrollView.frame.size.height);
+    _pageControl.numberOfPages = 1;
+    
+    CGFloat iconDimention = 80;
+    CGFloat iconXPadding = floorf((self.frame.size.width - numberOfIconsInLine*iconDimention) / (numberOfIconsInLine + 1));
+    CGFloat iconYPadding = 20;
+    CGFloat xOffset = iconXPadding;
+    CGFloat yOffset = 0;
+    
+    NSUInteger iconCount = 0;
+    for (UIView* subview in [_scrollView subviews]) {
+        subview.frame = CGRectMake(xOffset, yOffset, subview.frame.size.width, subview.frame.size.height);
+        iconCount++;
+        xOffset += (iconDimention + iconXPadding);
+        if (iconCount % numberOfIconsInLine == 0) {
+            xOffset = iconXPadding;
+            yOffset += (iconDimention + iconYPadding);
+        }
     }
 }
 

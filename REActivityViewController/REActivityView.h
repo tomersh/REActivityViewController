@@ -33,9 +33,10 @@
 @property (strong, nonatomic) UIImageView *backgroundImageView;
 @property (strong, nonatomic) UIScrollView *scrollView;
 @property (strong, nonatomic) NSArray *activities;
-@property (strong, nonatomic) REActivityViewController *activityViewController;
+@property (weak, nonatomic) REActivityViewController *activityViewController;
 @property (strong, nonatomic) UIButton *cancelButton;
-
+@property (nonatomic, readonly) NSUInteger *numberOfIconsInLine;
+@property (nonatomic, strong) NSString* containerName;
 - (id)initWithFrame:(CGRect)frame activities:(NSArray *)activities;
 
 @end

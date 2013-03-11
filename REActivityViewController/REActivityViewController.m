@@ -26,19 +26,18 @@
 #import "REActivityViewController.h"
 #import "REActivityView.h"
 
-@interface REActivityViewController ()
-
-- (NSInteger)height;
-
-@end
-
 @implementation REActivityViewController
+
+static CGFloat landscapeHeightOffset = 0;
+static CGFloat portraitHeightOffset = 70;
 
 - (id)initWithViewController:(UIViewController *)viewController activities:(NSArray *)activities
 {
     self = [super init];
     if (self) {
-        self.view.frame = CGRectMake(0, 0, 320, 417);
+        CGRect frame = [UIScreen mainScreen].bounds;
+        
+        self.view.frame = frame;
         self.presentingController = viewController;
         
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
@@ -52,16 +51,23 @@
         _activities = activities;
         _activityView = [[REActivityView alloc] initWithFrame:CGRectMake(0,
                                                                          UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone ?
-                                                                         [UIScreen mainScreen].bounds.size.height : 0,
-                                                                         self.view.frame.size.width, self.height)
+                                                                         self.view.frame.size.height : 0,
+                                                                         frame.size.width, [self  _calculateViewHeight])
                                                    activities:activities];
+        _activityView.containerName = NSStringFromClass([viewController class]);
         _activityView.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+        
+        
         _activityView.activityViewController = self;
         [self.view addSubview:_activityView];
-        
-        self.contentSizeForViewInPopover = CGSizeMake(320, self.height - 60);
     }
+    
     return self;
+}
+
+-(void)viewWillLayoutSubviews {
+    [super viewWillLayoutSubviews];
+    [self willAnimateRotationToInterfaceOrientation:[[UIApplication sharedApplication] statusBarOrientation] duration:0];
 }
 
 - (void)dismissViewControllerAnimated:(BOOL)flag completion:(void (^)(void))completion
@@ -73,7 +79,10 @@
             frame.origin.y = [UIScreen mainScreen].bounds.size.height;
             _activityView.frame = frame;
         } completion:^(BOOL finished) {
-            [super dismissViewControllerAnimated:NO completion:completion];
+            [self.view removeFromSuperview];
+            [self removeFromParentViewController];
+            if (completion)
+                completion();
         }];
     } else {
         [self.presentingPopoverController dismissPopoverAnimated:YES];
@@ -84,6 +93,13 @@
     }
 }
 
+-(void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
+    CGRect frame = _activityView.frame;
+    frame.origin.y = [self _calculateHightOffset];
+    frame.size.height = [self _calculateViewHeight];
+    _activityView.frame = frame;
+}
+
 - (void)viewWillAppear:(BOOL)animated
 {
     if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
@@ -91,7 +107,7 @@
             _backgroundView.alpha = 0.4;
             
             CGRect frame = _activityView.frame;
-            frame.origin.y = self.view.frame.size.height - self.height;
+            frame.origin.y = [self _calculateHightOffset];
             _activityView.frame = frame;
         }];
     }
@@ -99,16 +115,31 @@
      [super viewWillAppear:animated];
 }
 
-- (void)viewWillDisappear:(BOOL)animated
+
+- (NSInteger) _calculateViewHeight
 {
-    [super viewWillDisappear: animated];
+    //CGRect screen = [UIScreen mainScreen].bounds;
+    if (UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation])) {
+        return self.view.bounds.size.height - [self _calculateHightOffset];
+    }
+    return self.view.bounds.size.height - [self _calculateHightOffset];
 }
 
-- (NSInteger)height
-{   
-    if (_activities.count <= 3) return 214;
-    if (_activities.count <= 6) return 317;
-    return 417;
+
+- (NSInteger) _calculateHightOffset
+{
+    NSInteger offset = 0;
+    if (UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation])) {
+        offset = landscapeHeightOffset;
+        if ([_activityView.activities count] <= (int)_activityView.numberOfIconsInLine)  offset += 60;
+    }
+    else {
+        offset =  portraitHeightOffset;
+        if ([_activityView.activities count] <= 2*(int)_activityView.numberOfIconsInLine)  offset += 60;
+    }
+    
+    
+    return offset;
 }
 
 - (void)viewDidLoad
